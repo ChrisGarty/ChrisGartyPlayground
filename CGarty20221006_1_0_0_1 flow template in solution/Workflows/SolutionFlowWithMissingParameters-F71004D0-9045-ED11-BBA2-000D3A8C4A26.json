@@ -1,0 +1,108 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_msnweather": {
+        "runtimeSource": "invoker",
+        "connection": {
+          "connectionReferenceLogicalName": "new_sharedmsnweather_87ff9"
+        },
+        "api": {
+          "name": "shared_msnweather"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "invoker",
+        "connection": {
+          "connectionReferenceLogicalName": "cg_sharedoffice365_d9f34"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": {
+          "defaultValue": {},
+          "type": "Object"
+        },
+        "$authentication": {
+          "defaultValue": {},
+          "type": "SecureObject"
+        }
+      },
+      "triggers": {
+        "manual": {
+          "metadata": {
+            "operationMetadataId": "e118385d-6ca3-446e-a31b-fa21d0109a9e"
+          },
+          "type": "Request",
+          "kind": "Button",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {},
+              "required": []
+            }
+          }
+        }
+      },
+      "actions": {
+        "Get_current_weather": {
+          "runAfter": {},
+          "metadata": {
+            "operationMetadataId": "aaca391b-8d4f-475d-868a-148102c37082"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_msnweather",
+              "operationId": "CurrentWeather",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_msnweather"
+            },
+            "parameters": {
+              "Location": "58103",
+              "units": "Imperial"
+            },
+            "authentication": {
+              "type": "Raw",
+              "value": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$ConnectionKey']"
+            }
+          }
+        },
+        "Send_an_email_(V2)": {
+          "runAfter": {
+            "Get_current_weather": [
+              "Succeeded"
+            ]
+          },
+          "metadata": {
+            "operationMetadataId": "0403f807-7861-455c-abfa-5f8f33539351"
+          },
+          "type": "OpenApiConnection",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_office365",
+              "operationId": "SendEmailV2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "emailMessage/To": "Chris.Garty@microsoft.com",
+              "emailMessage/Subject": "Weather",
+              "emailMessage/Body": "<p>Weather: @{outputs('Get_current_weather')?['body/responses/weather/current/cap']}</p>",
+              "emailMessage/Importance": "Normal"
+            },
+            "authentication": {
+              "type": "Raw",
+              "value": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$ConnectionKey']"
+            }
+          }
+        }
+      }
+    },
+    "templateName": null
+  },
+  "schemaVersion": "1.0.0.0"
+}
